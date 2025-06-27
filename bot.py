@@ -66,6 +66,14 @@ async def choose_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     return ASK_PASSKEY
 
+# ✅ NEW handler for payment screenshot
+async def handle_payment_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "✅ Payment screenshot received!\n"
+        "🔑 Ab passkey ke liye admin se sampark kare: @Stake_Mines_God"
+    )
+    return ASK_PASSKEY
+
 async def check_passkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_input = update.message.text.strip()
     plan = context.user_data.get("plan")
@@ -113,9 +121,14 @@ def main():
         entry_points=[CommandHandler("start", start)],
         states={
             CHOOSE_PLAN: [CallbackQueryHandler(choose_plan)],
-            ASK_PASSKEY: [MessageHandler(filters.TEXT & ~filters.COMMAND, check_passkey)],
-            ASK_SEED: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_seed),
-                       CallbackQueryHandler(next_signal, pattern="next_signal")]
+            ASK_PASSKEY: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, check_passkey),
+                MessageHandler(filters.PHOTO, handle_payment_screenshot)
+            ],
+            ASK_SEED: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_seed),
+                CallbackQueryHandler(next_signal, pattern="next_signal")
+            ]
         },
         fallbacks=[CommandHandler("start", start)]
     )
