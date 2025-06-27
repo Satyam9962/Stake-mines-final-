@@ -117,7 +117,7 @@ def main():
             ASK_SEED: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_seed),
                        CallbackQueryHandler(next_signal, pattern="next_signal")]
         },
-        fallbacks=[]
+        fallbacks=[CommandHandler("start", start)]
     )
     app.add_handler(conv_handler)
     logger.info("Bot running...")
