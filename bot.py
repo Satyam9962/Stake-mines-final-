@@ -138,16 +138,17 @@ async def receive_seed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     image = generate_prediction_image(seed)
     bio = io.BytesIO()
     bio.name = 'prediction.png'
-    image.save(bio, 'PNG')
-    bio.seek(0)
-    keyboard = [[InlineKeyboardButton("➡️ Next Signal", callback_data="next_signal")]]
-    await update.message.reply_photo(
-        photo=bio,
-        caption="🟩 Yeh rahe 5 safe tiles!\nType or tap 'Next Signal' for a new prediction.",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    increment_usage(user_id)
-    return ASK_SEED
+    image_path = generate_prediction_image(seed)
+img = Image.open(image_path)
+bio = io.BytesIO()
+img.save(bio, 'PNG')
+bio.seek(0)
+keyboard = [[InlineKeyboardButton("➡️ Next Signal", callback_data="next_signal")]]
+await update.message.reply_photo(
+    photo=bio,
+    caption="🟩 Yeh rahe 5 safe tiles!\nType or tap 'Next Signal' for a new prediction.",
+    reply_markup=InlineKeyboardMarkup(keyboard)
+)
 
 async def next_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
