@@ -1,35 +1,36 @@
-from PIL import Image
-import random
+import json
 import os
+import random
+from PIL import Image
 
-GRID_SIZE = 5
-TILE_SIZE = 100
+def load_user_data():
+    if not os.path.exists("users.json"):
+        return {}
+    with open("users.json", "r") as f:
+        return json.load(f)
 
-SAFE_TILE_PATH = "safe_tile.png"
-CLOSED_TILE_PATH = "closed_tile.png"
+def save_user_data(data):
+    with open("users.json", "w") as f:
+        json.dump(data, f, indent=4)
 
-def load_tiles():
-    safe_tile = Image.open(SAFE_TILE_PATH).convert("RGBA")
-    closed_tile = Image.open(CLOSED_TILE_PATH).convert("RGBA")
-    return safe_tile, closed_tile
+def generate_safe_tiles(seed):
+    random.seed(seed)
+    return random.sample(range(25), 5)
 
-def get_safe_tiles(seed: str):
-    random.seed(str(seed))  # safer seed handling
-    positions = [(i, j) for i in range(GRID_SIZE) for j in range(GRID_SIZE)]
-    return random.sample(positions, 5)
+def generate_prediction_image(seed, safe_tiles):
+    box_size = 100
+    grid_size = 5
+    image = Image.new("RGBA", (box_size * grid_size, box_size * grid_size), (255, 255, 255, 0))
 
-def generate_prediction_image(seed: str):
-    safe_tile_img, closed_tile_img = load_tiles()
-    safe_tiles = get_safe_tiles(seed)
+    safe_img = Image.open("safe_box.png").resize((box_size, box_size))
+    closed_img = Image.open("closed_box.png").resize((box_size, box_size))
 
-    img = Image.new("RGBA", (GRID_SIZE * TILE_SIZE, GRID_SIZE * TILE_SIZE), (24, 26, 33, 255))
+    for i in range(grid_size):
+        for j in range(grid_size):
+            index = i * grid_size + j
+            if index in safe_tiles:
+                image.paste(safe_img, (j * box_size, i * box_size), safe_img)
+            else:
+                image.paste(closed_img, (j * box_size, i * box_size), closed_img)
 
-    for row in range(GRID_SIZE):
-        for col in range(GRID_SIZE):
-            tile = safe_tile_img if (row, col) in safe_tiles else closed_tile_img
-            img.paste(tile.resize((TILE_SIZE, TILE_SIZE)), (col * TILE_SIZE, row * TILE_SIZE))
-
-    os.makedirs("predictions", exist_ok=True)
-    output_path = os.path.join("predictions", f"{seed}.png")
-    img.save(output_path)
-    return output_path
+    return image
