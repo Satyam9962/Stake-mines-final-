@@ -5,8 +5,8 @@ from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
     filters, ContextTypes, ConversationHandler
 )
-from utils import generate_prediction_image, get_safe_tiles
-
+from utils import generate_safe_tiles, generate_prediction_image
+from datetime import datetime, timedelta
 # --- Constants ---
 ASK_PLAN, ASK_SCREENSHOT, ASK_PASSKEY, ASK_SEED = range(4)
 ADMIN_USERNAME = "@Stake_Mines_God"
