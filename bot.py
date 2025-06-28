@@ -64,7 +64,7 @@ async def ask_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
             photo=f,
             caption=f"💸 *{price} ka payment* kare aur screenshot bheje.\n\n"
                     "✅ Payment hone ke baad passkey prapt karne ke liye admin se sampark kare: "
-                    f"{ADMIN_USERNAME}",
+                    f"{@Stake_Mines_God}",
             parse_mode="Markdown"
         )
     return ASK_SCREENSHOT
@@ -84,8 +84,8 @@ async def receive_passkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plan = context.user_data.get("selected_plan")
 
     valid_keys = {
-        "basic": "passkey123",   # Replace with your actual passkey
-        "king": "passkey999"
+        "basic": "AjdJe62BHkaie",   # Replace with your actual passkey
+        "king": "Sushru73TyaMisGHn"
     }
 
     if update.message.text.strip() == valid_keys.get(plan):
