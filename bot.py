@@ -114,51 +114,49 @@ async def receive_passkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ASK_PASSKEY
 
 # --- Handle Client Seed & Generate Prediction ---
+
 async def receive_seed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     user_data = load_user_data()
 
-    today = str(datetime.now().date())
-    record = user_data.get(user_id)
-
-    # Expired check
-    if datetime.now().date() > datetime.fromisoformat(record["expiry_date"]).date():
-        await update.message.reply_text("❌ Aapka plan expire ho chuka hai. Naya plan lene ke liye /start dabaye.")
+    if user_id not in user_data:
+        await update.message.reply_text("❌ Aapka plan active nahi hai. Kripya /start dabaye.")
         return ConversationHandler.END
 
-    # Daily reset
-    if record["last_used"] != today:
-        record["used_today"] = 0
-        record["last_used"] = today
-
-    if record["used_today"] >= record["daily_limit"]:
-        await update.message.reply_text(
-            "🚫 Aapki daily signals count khtm ho chuki hai.\n\n"
-            "🔁 Dubara prapt karne ke liye kal wapas aaye."
-        )
+    # Check expiry
+    expiry_date = datetime.strptime(user_data[user_id]["expiry_date"], "%Y-%m-%d").date()
+    today = datetime.now().date()
+    if today > expiry_date:
+        await update.message.reply_text("❌ Aapka plan samapt ho gaya hai. Kripya naye plan ke liye /start dabaye.")
         return ConversationHandler.END
 
-    record["used_today"] += 1
-    save_user_data(user_data)
+    # Reset daily count if new day
+    if str(today) != user_data[user_id]["last_used"]:
+        user_data[user_id]["used_today"] = 0
+        user_data[user_id]["last_used"] = str(today)
 
-    # Generate prediction
+    # Daily limit check
+    if user_data[user_id]["used_today"] >= user_data[user_id]["daily_limit"]:
+        await update.message.reply_text("⚠️ Aapki daily signals count khtm hogyi hai. Dubara prapt krne ke liye kal wapas aaye.")
+        return ConversationHandler.END
+
     seed = update.message.text.strip()
-    safe_tiles = get_safe_tiles(seed)
-    img = generate_prediction_image(safe_tiles)
-    bio = io.BytesIO()
-    img.save(bio, format="PNG")
-    bio.seek(0)
+    safe_tiles = generate_safe_tiles(seed)
+    image = generate_prediction_image(seed, safe_tiles)
+
+    file_path = f"prediction_{user_id}.png"
+    image.save(file_path)
 
     await update.message.reply_photo(
-        photo=bio,
-        caption="✅ Yahi hai aaj ka signal. Sirf 3 mines k saath khelein.\n\n"
-                "🔁 Next Signal lene ke liye niche button dabaye.",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔁 Next Signal", callback_data="next_signal")]
-        ])
+        photo=open(file_path, "rb"),
+        caption="✅ Prediction tayar hai! Safe tiles dikhaye gaye hain."
     )
-    return ASK_SEED
 
+    user_data[user_id]["used_today"] += 1
+    save_user_data(user_data)
+
+    await update.message.reply_text("➡️ Agla signal prapt karne ke liye 'Next Signal' bheje.")
+    return ASK_SEED
 # --- Handle Next Signal Button ---
 async def next_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
