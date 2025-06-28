@@ -5,7 +5,7 @@ import os
 GRID_SIZE = 5
 TILE_SIZE = 100
 
-BASE_IMAGE_PATH = "assets/base_grid.png"
+BASE_IMAGE_PATH = "base_grid.png"  # assets/ hata diya
 SAFE_TILE_CROP = (100, 0, 200, 100)
 CLOSED_TILE_CROP = (0, 0, 100, 100)
 
