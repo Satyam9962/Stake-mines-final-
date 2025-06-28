@@ -1,28 +1,23 @@
 from PIL import Image, ImageDraw
-import hashlib, random
+import hashlib
+import random
 
-def get_safe_tiles(seed):
-    hashed = hashlib.sha256(seed.encode()).hexdigest()
-    random.seed(hashed)
-    return random.sample(range(25), 5)
-
-def generate_prediction_image(seed):
-    grid_size = 5
+def generate_prediction_image(seed: str) -> Image.Image:
+    hash_val = hashlib.sha256(seed.encode()).hexdigest()
+    random.seed(hash_val)
+    safe_tiles = random.sample(range(25), 5)
     tile_size = 100
-    spacing = 10
-    width = height = grid_size * (tile_size + spacing) - spacing
-    image = Image.new("RGB", (width, height), "#111")
-    draw = ImageDraw.Draw(image)
+    grid_size = 5
+    img = Image.new("RGBA", (tile_size * grid_size, tile_size * grid_size), (30, 35, 45))
 
-    safe_tiles = get_safe_tiles(seed)
+    tile = Image.open("green_diamond_tile.png").resize((tile_size, tile_size))
+
     for i in range(25):
-        row, col = divmod(i, grid_size)
-        x = col * (tile_size + spacing)
-        y = row * (tile_size + spacing)
+        x = (i % grid_size) * tile_size
+        y = (i // grid_size) * tile_size
         if i in safe_tiles:
-            draw.rectangle([x, y, x+tile_size, y+tile_size], fill="#00ff77")
-            draw.text((x + 35, y + 35), "💎", fill="black")
+            img.paste(tile, (x, y), mask=tile if tile.mode == 'RGBA' else None)
         else:
-            draw.rectangle([x, y, x+tile_size, y+tile_size], fill="#333")
+            ImageDraw.Draw(img).rectangle([x, y, x + tile_size, y + tile_size], fill=(50, 55, 65))
 
-    return image
+    return img
