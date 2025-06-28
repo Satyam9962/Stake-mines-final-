@@ -177,8 +177,7 @@ if __name__ == "__main__":
             ASK_PLAN: [CallbackQueryHandler(ask_screenshot)],
             ASK_SCREENSHOT: [MessageHandler(filters.PHOTO, receive_screenshot)],
             ASK_PASSKEY: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_passkey)],
-            ASK_SEED: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_seed),
+            ASK_SEED: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_seed)],
                 CallbackQueryHandler(next_signal, pattern="^next_signal$")
             ]
         },
