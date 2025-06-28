@@ -1,75 +1,62 @@
-import logging, os, json, io
+import logging
 from datetime import datetime, timedelta
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
-    filters, ContextTypes, ConversationHandler
+    ApplicationBuilder,
+    CommandHandler,
+    ContextTypes,
+    ConversationHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    filters
 )
-from utils import generate_safe_tiles, generate_prediction_image
-from datetime import datetime, timedelta
+from utils import generate_safe_tiles, generate_prediction_image, load_user_data, save_user_data
+
 # --- Constants ---
-ASK_PLAN, ASK_SCREENSHOT, ASK_PASSKEY, ASK_SEED = range(4)
+ASK_PLAN, ASK_PAYMENT, ASK_PASSKEY, ASK_SEED = range(4)
 ADMIN_USERNAME = "@Stake_Mines_God"
 
-# File to store user plans and usage
-USER_DATA_FILE = "user_data.json"
-if not os.path.exists(USER_DATA_FILE):
-    with open(USER_DATA_FILE, "w") as f:
-        json.dump({}, f)
+# --- Logging ---
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# --- Load/Save User Data ---
-def load_user_data():
-    with open(USER_DATA_FILE, "r") as f:
-        return json.load(f)
 
-def save_user_data(data):
-    with open(USER_DATA_FILE, "w") as f:
-        json.dump(data, f)
-
-# --- Start Command ---
+# --- Start ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    user_data = load_user_data()
-
-    # Always reset if user restarts
-    user_data[str(user.id)] = {}
-    save_user_data(user_data)
-
-    buttons = [
-        [InlineKeyboardButton("💎 Mines Basic – ₹499", callback_data="basic")],
-        [InlineKeyboardButton("👑 Mines King – ₹999", callback_data="king")]
-    ]
     await update.message.reply_text(
-        f"🙏 *{user.first_name}* ji, aapka swagat hai hamare Stake Mines Prediction Bot me!\n\n"
-        "🕒 Timing: 8 AM se 8 PM tak\n\n"
-        "⚡ Recommended Plan: *Mines King* for best predictions.\n\n"
+        f"👋 Namaste {user.first_name}!\n\n"
+        "Aapka swagat hai *Stake Mines Prediction Bot* me!\n\n"
+        "⏰ Timing: 8 AM - 8 PM\n"
+        "🔐 Prediction sirf 3 mines ke liye kaam karta hai.\n\n"
+        "💎 Recommended Plan: *Mines King (₹999)*\n"
         "👇 Apna plan chune:",
         parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(buttons)
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("Mines Basic (₹499)", callback_data="basic")],
+            [InlineKeyboardButton("Mines King (₹999)", callback_data="king")]
+        ])
     )
     return ASK_PLAN
 
-# --- Plan Selected ---
-async def ask_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+# --- Plan Selection ---
+async def select_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     plan = query.data
-
     context.user_data["selected_plan"] = plan
-    price = "₹499" if plan == "basic" else "₹999"
+
     qr_image = "qr_basic.png" if plan == "basic" else "qr_king.png"
+    await query.message.reply_photo(
+        photo=open(qr_image, "rb"),
+        caption="✅ Kripya QR code scan karke payment kare.\n"
+                "💬 Payment hone ke baad screenshot bheje."
+    )
+    return ASK_PAYMENT
 
-    with open(qr_image, "rb") as f:
-        await query.message.reply_photo(
-            photo=f,
-            caption=f"💸 *{price} ka payment* kare aur screenshot bheje.\n\n"
-                    "✅ Payment hone ke baad passkey prapt karne ke liye admin se sampark kare: "
-                    f"{ADMIN_USERNAME}",
-            parse_mode="Markdown"
-        )
-    return ASK_SCREENSHOT
 
-# --- Handle Screenshot Upload ---
+# --- Screenshot Handler ---
 async def receive_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "✅ Screenshot prapt. Kripya admin se sampark kare passkey ke liye: "
@@ -77,14 +64,15 @@ async def receive_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
     return ASK_PASSKEY
 
-# --- Handle Passkey ---
+
+# --- Passkey Verification ---
 async def receive_passkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     user_data = load_user_data()
     plan = context.user_data.get("selected_plan")
 
     valid_keys = {
-        "basic": "AjdJe62BHkaie",   # Replace with your actual passkey
+        "basic": "AjdJe62BHkaie",
         "king": "Sushru73TyaMisGHn"
     }
 
@@ -107,14 +95,11 @@ async def receive_passkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ASK_SEED
     else:
-        await update.message.reply_text(
-            "❌ Galat passkey. Agar aapne payment kar diya hai to admin se sampark kare: "
-            f"{ADMIN_USERNAME}"
-        )
+        await update.message.reply_text("❌ Galat passkey. Agar aapne payment kar diya hai to admin se sampark kare.")
         return ASK_PASSKEY
 
-# --- Handle Client Seed & Generate Prediction ---
 
+# --- Client Seed Receiver ---
 async def receive_seed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     user_data = load_user_data()
@@ -123,32 +108,33 @@ async def receive_seed(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Aapka plan active nahi hai. Kripya /start dabaye.")
         return ConversationHandler.END
 
-    # Check expiry
-    expiry_date = datetime.strptime(user_data[user_id]["expiry_date"], "%Y-%m-%d").date()
+    # Plan expiry check
     today = datetime.now().date()
+    expiry_date = datetime.strptime(user_data[user_id]["expiry_date"], "%Y-%m-%d").date()
     if today > expiry_date:
         await update.message.reply_text("❌ Aapka plan samapt ho gaya hai. Kripya naye plan ke liye /start dabaye.")
         return ConversationHandler.END
 
-    # Reset daily count if new day
+    # Daily reset
     if str(today) != user_data[user_id]["last_used"]:
         user_data[user_id]["used_today"] = 0
         user_data[user_id]["last_used"] = str(today)
 
-    # Daily limit check
+    # Signal limit check
     if user_data[user_id]["used_today"] >= user_data[user_id]["daily_limit"]:
         await update.message.reply_text("⚠️ Aapki daily signals count khtm hogyi hai. Dubara prapt krne ke liye kal wapas aaye.")
         return ConversationHandler.END
 
+    # Generate prediction
     seed = update.message.text.strip()
     safe_tiles = generate_safe_tiles(seed)
     image = generate_prediction_image(seed, safe_tiles)
 
-    file_path = f"prediction_{user_id}.png"
-    image.save(file_path)
+    image_path = f"prediction_{user_id}.png"
+    image.save(image_path)
 
     await update.message.reply_photo(
-        photo=open(file_path, "rb"),
+        photo=open(image_path, "rb"),
         caption="✅ Prediction tayar hai! Safe tiles dikhaye gaye hain."
     )
 
@@ -157,32 +143,27 @@ async def receive_seed(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("➡️ Agla signal prapt karne ke liye 'Next Signal' bheje.")
     return ASK_SEED
-# --- Handle Next Signal Button ---
-async def next_signal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    await query.message.reply_text("🔁 Apna agla *client seed* bheje:", parse_mode="Markdown")
-    return ASK_SEED
 
-# --- Main ---
+
+# --- Main Function ---
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Replace with your bot token or use export
+    import os
+    TOKEN = os.getenv("BOT_TOKEN")  # Render pe BOT_TOKEN env me set hoga
 
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app = ApplicationBuilder().token(TOKEN).build()
 
-    conv = ConversationHandler(
+    conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
-            ASK_PLAN: [CallbackQueryHandler(ask_screenshot)],
-            ASK_SCREENSHOT: [MessageHandler(filters.PHOTO, receive_screenshot)],
+            ASK_PLAN: [CallbackQueryHandler(select_plan)],
+            ASK_PAYMENT: [MessageHandler(filters.PHOTO, receive_screenshot)],
             ASK_PASSKEY: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_passkey)],
             ASK_SEED: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_seed)],
-                CallbackQueryHandler(next_signal, pattern="^next_signal$")
-            ]
         },
-        fallbacks=[]
+        fallbacks=[],
     )
 
-    app.add_handler(conv)
+    app.add_handler(conv_handler)
+
+    print("🤖 Bot started...")
     app.run_polling()
