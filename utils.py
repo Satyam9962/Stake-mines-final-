@@ -5,14 +5,12 @@ import os
 GRID_SIZE = 5
 TILE_SIZE = 100
 
-BASE_IMAGE_PATH = "base_grid.png"  # assets/ hata diya
-SAFE_TILE_CROP = (100, 0, 200, 100)
-CLOSED_TILE_CROP = (0, 0, 100, 100)
+SAFE_TILE_PATH = "safe_tile.png"
+CLOSED_TILE_PATH = "closed_tile.png"
 
 def load_tiles():
-    base = Image.open(BASE_IMAGE_PATH).convert("RGBA")
-    safe_tile = base.crop(SAFE_TILE_CROP)
-    closed_tile = base.crop(CLOSED_TILE_CROP)
+    safe_tile = Image.open(SAFE_TILE_PATH).convert("RGBA")
+    closed_tile = Image.open(CLOSED_TILE_PATH).convert("RGBA")
     return safe_tile, closed_tile
 
 def get_safe_tiles(seed: str):
