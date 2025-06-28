@@ -64,7 +64,7 @@ async def ask_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
             photo=f,
             caption=f"💸 *{price} ka payment* kare aur screenshot bheje.\n\n"
                     "✅ Payment hone ke baad passkey prapt karne ke liye admin se sampark kare: "
-                    f"{@Stake_Mines_God}",
+                    f"{ADMIN_USERNAME}",
             parse_mode="Markdown"
         )
     return ASK_SCREENSHOT
