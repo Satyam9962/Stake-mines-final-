@@ -14,7 +14,7 @@ def load_tiles():
     return safe_tile, closed_tile
 
 def get_safe_tiles(seed: str):
-    random.seed(seed)
+    random.seed(str(seed))  # safer seed handling
     positions = [(i, j) for i in range(GRID_SIZE) for j in range(GRID_SIZE)]
     return random.sample(positions, 5)
 
@@ -26,14 +26,10 @@ def generate_prediction_image(seed: str):
 
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
-            x = col * TILE_SIZE
-            y = row * TILE_SIZE
-            if (row, col) in safe_tiles:
-                img.paste(safe_tile_img.resize((TILE_SIZE, TILE_SIZE)), (x, y))
-            else:
-                img.paste(closed_tile_img.resize((TILE_SIZE, TILE_SIZE)), (x, y))
+            tile = safe_tile_img if (row, col) in safe_tiles else closed_tile_img
+            img.paste(tile.resize((TILE_SIZE, TILE_SIZE)), (col * TILE_SIZE, row * TILE_SIZE))
 
     os.makedirs("predictions", exist_ok=True)
-    output_path = f"predictions/{seed}.png"
+    output_path = os.path.join("predictions", f"{seed}.png")
     img.save(output_path)
     return output_path
