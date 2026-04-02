@@ -1,2 +1,2 @@
 python-telegram-bot==20.3
-Pillow==9.5.0
+Pillow
