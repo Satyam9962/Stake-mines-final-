@@ -148,7 +148,7 @@ async def receive_seed(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- Main Function ---
 if __name__ == "__main__":
     import os
-    TOKEN = os.getenv("BOT_TOKEN")  # Render pe BOT_TOKEN env me set hoga
+    TOKEN = "7490545740:AAEcbWJN2nXrj1cdK6GCsRXkk_EQ5XkReNc" # Render pe BOT_TOKEN env me set hoga
 
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -167,3 +167,4 @@ if __name__ == "__main__":
 
     print("🤖 Bot started...")
     app.run_polling()
+    
