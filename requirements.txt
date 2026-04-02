@@ -1,2 +1,4 @@
 python-telegram-bot==20.3
-Pillow
+httpx==0.24.1
+httpcore==0.17.3
+Pillow==10.0.0
